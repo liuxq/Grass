@@ -1,0 +1,28 @@
+1. Create empty game object and add VolumeGrass.cs script (available from component menu).
+   a. Adding nodes - shift click, adding bezier handles - alt click
+   b. Shift click on edge will insert node between
+   c. Alt+shift click to define arbitrary tesselation points on mesh
+   d. Adjust settings and click "Build"
+   
+2. When adding SetupForGrassRendering script to the camera, choose layers with objects that intersect the grass, keep in mind:
+	
+   a. make it simple (don't render whole scene into temporary depth buffer, but objects you need to properly intersect grass only)
+   b. don't choose layers with grass (which would cause grass to be "self-occluded" and disappear during rendering)
+
+3. You can also use any "flat" mesh (like plane) and use VolumeGrass_CustomMesh.cs script. Correct volume will be constructed with shader attached.
+
+4. To make custom grass billboard textures use a tool (Window/VolumeGrass Tools/Prepare grass texture)
+
+5. Look into VG_Base.cginc - there is a tiny configuration section for options that are not available in material inspector. You can adjust IBL skyshop integration and color space.
+
+For further info read the newest docs supplied in pdf format here:
+
+http://www.stobierski.pl/unity/VolumeGrass.pdf
+  
+Basic ideas from VolumeGrass v1.1 available at youtube (note that UI presented there is obsolete a bit, but functions are the same):
+
+https://www.youtube.com/watch?v=04TaWOmWsCM
+
+New Volume Grass 1.5 forum thread:
+
+http://forum.unity3d.com/threads/volume-grass-unlimited-density.256497/
