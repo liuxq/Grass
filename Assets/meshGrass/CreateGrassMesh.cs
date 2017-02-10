@@ -23,14 +23,23 @@ public class CreateGrassMesh : EditorWindow {
     {
         Mesh grassMesh = new Mesh();
         List<Vector3> vertexs = new List<Vector3>();
+        List<int> triangles = new List<int>();
 
+        int xlen = 0;
+        int ylen = 0;
         for(float i = left; i < right; i++)
         {
+            xlen++;
             for (float j = bottom; j < top; j++)
             {
+                ylen++;
                 vertexs.Add(new Vector3(i, j, 0));
                 vertexs.Add(new Vector3(i, j, height));
             }
+
+
         }
+
+
     }
 }
