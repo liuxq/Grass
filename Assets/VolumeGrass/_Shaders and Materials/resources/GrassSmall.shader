@@ -82,12 +82,13 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 		//#pragma surface surf Lambert alphatest:_Cutoff vertex:vert fullforwardshadows
 		
 		#pragma target 2.0
+		#pragma glsl
 
 		#pragma vertex vert
         #pragma fragment frag
         #include "UnityCG.cginc"
 		 
-		#pragma shader_feature WIND WIND_OFF
+		//#pragma shader_feature WIND WIND_OFF
 		//#define WIND
 
 		// when not defined (commented out) we're in Gamma color space
@@ -141,10 +142,9 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 		struct Input {
 			float4 pos : SV_POSITION;
 			float4 worldPosDepth: TEXCOORD0; // xyz - worldPos, z - eye depth
-			float3 t0: TEXCOORD1;
-			float3 t1: TEXCOORD2;
-			float3 t2: TEXCOORD3;
-			float4 screenPos: TEXCOORD4;
+			float4 screenPos: TEXCOORD1;
+			float3 EyeDirTan: TEXCOORD2;
+
 			fixed4 color:COLOR0;
 		};
 
@@ -157,7 +157,7 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 			o.worldPosDepth.xyz=mul(unity_ObjectToWorld, v.vertex).xyz;
 			v.tangent.xyz = cross(v.normal, float3(0,0,1));
 			v.tangent.w = -1;
-	
+
 			v.vertex.xyz -= v.normal * HEIGHT * v.color.g*1.04;
 			COMPUTE_EYEDEPTH(o.worldPosDepth.w);
 
@@ -168,9 +168,12 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 			fixed tangentSign = v.tangent.w * unity_WorldTransformParams.w;
 			fixed3 worldBinormal = cross(worldNormal, worldTangent) * tangentSign;
 
-			o.t0 = float3(worldTangent.x, worldBinormal.x, worldNormal.x);
-			o.t1 = float3(worldTangent.y, worldBinormal.y, worldNormal.y);
-			o.t2 = float3(worldTangent.z, worldBinormal.z, worldNormal.z);
+			float3 t0 = float3(worldTangent.x, worldBinormal.x, worldNormal.x);
+			float3 t1 = float3(worldTangent.y, worldBinormal.y, worldNormal.y);
+			float3 t2 = float3(worldTangent.z, worldBinormal.z, worldNormal.z);
+
+			fixed3 worldViewDir = UnityWorldSpaceViewDir(o.worldPosDepth.xyz);
+			o.EyeDirTan = -(t0.xyz * worldViewDir.x + t1.xyz * worldViewDir.y  + t2.xyz * worldViewDir.z);
 
 			o.screenPos = ComputeScreenPos (o.pos);
 			o.color = v.color;
@@ -180,32 +183,28 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 
 		fixed4 frag (Input IN) : color 
 		{
-			fixed3 worldViewDir = normalize(UnityWorldSpaceViewDir(IN.worldPosDepth.xyz));
-			float3 EyeDirTan = -(IN.t0.xyz * worldViewDir.x + IN.t1.xyz * worldViewDir.y  + IN.t2.xyz * worldViewDir.z);
-
+			float3 EyeDirTan = IN.EyeDirTan;
 			fixed4 o = fixed4(0,0,0,1);
 
 			float GRASS_SLICE_NUM = 4;
-			//float PLANE_NUM = 8;
 
 			float PLANE_NUM_INV=0.125;
 			float GRASS_SLICE_NUM_INV=0.25;
-			//float TILING_FACTOR=HEIGHT*GRASS_SLICE_NUM;
-			//float PREMULT=2;//PLANE_NUM*GRASS_SLICE_NUM_INV;
-
-			float2 coordsDetail=IN.worldPosDepth.xz;
 
  			float zoffset = IN.color.r+IN.color.g;
  			zoffset = (zoffset>1) ? 1 : zoffset;
+
+			//float zoffset = 0;
 
 			// bend slices
 			/*float angle_fade=EyeDirTan.z;
 			angle_fade*=angle_fade;
 			angle_fade=1-angle_fade;
-			EyeDirTan.z*=lerp(1, angle_fade, _view_angle_damper);*/
-			EyeDirTan = normalize(EyeDirTan);			
+			EyeDirTan.z*=lerp(1, angle_fade, _view_angle_damper);
+			EyeDirTan = normalize(EyeDirTan);	*/		
 
-			float3 rayPos = float3(coordsDetail, -zoffset*GRASS_SLICE_NUM_INV);
+			float3 rayPos = float3(IN.worldPosDepth.xz, -zoffset*GRASS_SLICE_NUM_INV);
+			//float3 rayPos = float3(IN.worldPosDepth.xz, 0);
 	
 			float rayLength=0;
 			float3 delta_next=float3(PLANE_NUM_INV, PLANE_NUM_INV, GRASS_SLICE_NUM_INV);
@@ -221,8 +220,7 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 			delta/=EyeDirTan;
 			delta.z=(rayPos.z<0)?delta.z:delta_next.z;
 
-			fixed3 base_col = fixed3(0,0,0);
-			float cval=1;
+			//fixed3 base_col = fixed3(0,0,0);
 	
 			float2 _uv;
 			half4 _col;
@@ -232,40 +230,37 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 
 			bool xy_flag;
 			float delta_tmp; 
+			float bladesTex_xw = _BladesTex_TexelSize.x*_BladesTex_TexelSize.w;
 
- 			for(hitcount=0; hitcount <2; hitcount++) {
+ 			for(hitcount=0; hitcount < 3; hitcount++) {
 
-				xy_flag= true;//delta.x<delta.y;
+				xy_flag= delta.x<delta.y;
 				delta_tmp=xy_flag ? delta.x : delta.y;
 				zhit=(delta.z<delta_tmp);
 				delta_tmp=zhit ? delta.z : delta_tmp;
 
-				rayLength=(c.w>TRANSPARENCY_ZTEST_VALUE) ? rayLength : (rayLength+delta_tmp);
+				//rayLength=(c.w>TRANSPARENCY_ZTEST_VALUE) ? rayLength : (rayLength+delta_tmp);
 				rayPos+=delta_tmp*EyeDirTan;
 
  				if (!zhit) {
  					float3 rayPos_tmp = xy_flag ? rayPos.xyz : rayPos.yxz;
- 			
-					/*#ifdef CUSTOM_HASH_FUNCTION
-						#define HASH_OFFSET CUSTOM_HASH_FUNCTION
-					#else
-					float2 htmp=tex2D(_NoiseTexHash, float2(rayPos_tmp.x*0.03+0.001,0)).rg;
-						float HASH_OFFSET=(xy_flag ? htmp.x : htmp.y);
-					#endif*/
-			
-					_uv=rayPos_tmp.yz;//+float2(HASH_OFFSET,rayPos_tmp.x*PREMULT);
+
+					//float2 htmp=tex2D(_NoiseTexHash, float2(rayPos_tmp.x*0.03+0.001,0)).rg;
+					//float HASH_OFFSET=(xy_flag ? htmp.x : htmp.y);
+
+					//_uv=rayPos_tmp.yz;//+float2(HASH_OFFSET,rayPos_tmp.x*PREMULT);
 					//_uv = rayPos.yz;
 	 				//_col=tex2Dlod(_BladesTex, float4(_uv.x*_BladesTex_TexelSize.x*_BladesTex_TexelSize.w, _uv.y, mip_selector));
-					_col=tex2D(_BladesTex, float2(_uv.x*_BladesTex_TexelSize.x*_BladesTex_TexelSize.w, _uv.y));
+					_col=tex2D(_BladesTex, float2(rayPos_tmp.y*bladesTex_xw, rayPos_tmp.z));
 	 				//_col.a*=saturate( (rayPos_tmp.z*GRASS_SLICE_NUM+hgt)*removeVerticalWrap );
 
-					//_col.rgb*=_col.a;
+					_col.rgb*=_col.a;
 
  					c+=(1-c.w)*_col;
  			
  					delta.xyz=xy_flag ? float3(delta_next.x, delta.yz-delta.x) : float3(delta.x-delta.y, delta_next.y, delta.z-delta.y);
  				}
- 				if (zhit || c.w>=TRANSPARENCY_BREAK_VALUE) break;
+ 				//if (zhit || c.w>=TRANSPARENCY_BREAK_VALUE) break;
 			}
 
 			return c;	 
