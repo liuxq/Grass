@@ -154,6 +154,8 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 			UNITY_INITIALIZE_OUTPUT(Input,o);
 			o.pos = UnityObjectToClipPos(v.vertex);
 
+			
+
 			o.worldPosDepth.xyz=mul(unity_ObjectToWorld, v.vertex).xyz;
 			v.tangent.xyz = cross(v.normal, float3(0,0,1));
 			v.tangent.w = -1;
@@ -186,33 +188,33 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 			float3 EyeDirTan = IN.EyeDirTan;
 			fixed4 o = fixed4(0,0,0,1);
 
-			float GRASS_SLICE_NUM = 4;
+			//float GRASS_SLICE_NUM = 4;
 
-			float PLANE_NUM_INV=0.125;
-			float GRASS_SLICE_NUM_INV=0.25;
+			//float PLANE_NUM_INV=0.125;
+			//float GRASS_SLICE_NUM_INV=0.25;
 
- 			float zoffset = IN.color.r+IN.color.g;
- 			zoffset = (zoffset>1) ? 1 : zoffset;
+ 			//float zoffset = IN.color.r+IN.color.g;
+ 			//zoffset = (zoffset>1) ? 1 : zoffset;
 
 			//float zoffset = 0;
 
 			// bend slices
-			/*float angle_fade=EyeDirTan.z;
+			float angle_fade=EyeDirTan.z;
 			angle_fade*=angle_fade;
 			angle_fade=1-angle_fade;
 			EyeDirTan.z*=lerp(1, angle_fade, _view_angle_damper);
-			EyeDirTan = normalize(EyeDirTan);	*/		
+			EyeDirTan = normalize(EyeDirTan);		
 
-			float3 rayPos = float3(IN.worldPosDepth.xz, -zoffset*GRASS_SLICE_NUM_INV);
-			//float3 rayPos = float3(IN.worldPosDepth.xz, 0);
+			//float3 rayPos = float3(IN.worldPosDepth.xz, -zoffset*GRASS_SLICE_NUM_INV);
+			float3 rayPos = float3(IN.worldPosDepth.xz, 0);
 	
-			float rayLength=0;
-			float3 delta_next=float3(PLANE_NUM_INV, PLANE_NUM_INV, GRASS_SLICE_NUM_INV);
+			//float rayLength=0;
+			float3 delta_next=float3(0.125, 0.125, 0.25);
 	
 			// evaluated pixel color
 			half4 c = half4(0.0,0.0,0.0,0.0);
 
- 			float3 rayPosN=float3(rayPos.xy*8, rayPos.z*GRASS_SLICE_NUM);
+ 			float3 rayPosN=float3(rayPos.xy*8, rayPos.z*4);
 			float3 delta=-frac(rayPosN);
 			delta=(EyeDirTan>0) ? frac(-rayPosN) : delta;
 			delta*=delta_next;
@@ -232,7 +234,7 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
 			float delta_tmp; 
 			float bladesTex_xw = _BladesTex_TexelSize.x*_BladesTex_TexelSize.w;
 
- 			for(hitcount=0; hitcount < 3; hitcount++) {
+ 			for(hitcount=0; hitcount < 2; hitcount++) {
 
 				xy_flag= delta.x<delta.y;
 				delta_tmp=xy_flag ? delta.x : delta.y;
@@ -245,13 +247,13 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
  				if (!zhit) {
  					float3 rayPos_tmp = xy_flag ? rayPos.xyz : rayPos.yxz;
 
-					//float2 htmp=tex2D(_NoiseTexHash, float2(rayPos_tmp.x*0.03+0.001,0)).rg;
-					//float HASH_OFFSET=(xy_flag ? htmp.x : htmp.y);
+					float2 htmp=tex2D(_NoiseTexHash, float2(rayPos_tmp.x*0.03+0.001,0)).rg;
+					float HASH_OFFSET=(xy_flag ? htmp.x : htmp.y);
 
 					//_uv=rayPos_tmp.yz;//+float2(HASH_OFFSET,rayPos_tmp.x*PREMULT);
 					//_uv = rayPos.yz;
 	 				//_col=tex2Dlod(_BladesTex, float4(_uv.x*_BladesTex_TexelSize.x*_BladesTex_TexelSize.w, _uv.y, mip_selector));
-					_col=tex2D(_BladesTex, float2(rayPos_tmp.y*bladesTex_xw, rayPos_tmp.z));
+					_col=tex2D(_BladesTex, float2(rayPos_tmp.y*bladesTex_xw + HASH_OFFSET, rayPos_tmp.z));
 	 				//_col.a*=saturate( (rayPos_tmp.z*GRASS_SLICE_NUM+hgt)*removeVerticalWrap );
 
 					_col.rgb*=_col.a;
@@ -260,6 +262,8 @@ Shader "Grass Shader afterlightmap Small (no zwrite)" {
  			
  					delta.xyz=xy_flag ? float3(delta_next.x, delta.yz-delta.x) : float3(delta.x-delta.y, delta_next.y, delta.z-delta.y);
  				}
+
+				
  				//if (zhit || c.w>=TRANSPARENCY_BREAK_VALUE) break;
 			}
 
