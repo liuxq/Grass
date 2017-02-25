@@ -3,8 +3,8 @@ using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 
-[CustomEditor(typeof(MeshGrass))]
-public class MeshGrassEditor : Editor {
+[CustomEditor(typeof(GrassScript))]
+public class AreaGrassEditor : Editor {
 
     private Vector3 GetWorldPointFromMouse()
     {
@@ -125,13 +125,14 @@ public class MeshGrassEditor : Editor {
         Mesh grassMesh = new Mesh();
         List<Vector3> vertexs = new List<Vector3>();
         List<Vector2> uvs = new List<Vector2>();
+        List<Vector2> uv2s = new List<Vector2>();
+        List<Vector2> uv3s = new List<Vector2>();
         List<Vector3> normals = new List<Vector3>();
         List<int> triangles = new List<int>();
 
-        float step = 0.15f;
         int index = 0;
 
-        MeshGrass _target = (MeshGrass)target;
+        AreaGrassObject _target = AreaGrassObject.Instance;
         Vector3 heightOffset = new Vector3(0, _target.height, 0);
 
         Vector2 xMinMax, zMinMax;
@@ -140,7 +141,7 @@ public class MeshGrassEditor : Editor {
         List<Vector3> intersectPs = new List<Vector3>();
 
         //x 
-        for(float i = xMinMax.x; i < xMinMax.y; i += step)
+        for(float i = xMinMax.x; i < xMinMax.y; i += _target.step)
         {
             intersectPs = getIntersectPoints(true, i, _target.control_points);
             if (intersectPs.Count <= 1)
@@ -148,10 +149,10 @@ public class MeshGrassEditor : Editor {
             for (int j = 0; j < intersectPs.Count-1; j+=2 )
             {
                 float dis = Vector3.Distance(intersectPs[j], intersectPs[j + 1]);
-                vertexs.Add(intersectPs[j]); uvs.Add(new Vector2(0, 0)); normals.Add(new Vector3(1, 0, 0));
-                vertexs.Add(intersectPs[j] + heightOffset); uvs.Add(new Vector2(0, 1)); normals.Add(new Vector3(1, 1, 0));
-                vertexs.Add(intersectPs[j + 1]); uvs.Add(new Vector2(dis / _target.height / 4, 0)); normals.Add(new Vector3(1, 0, 0));
-                vertexs.Add(intersectPs[j + 1] + heightOffset); uvs.Add(new Vector2(dis / _target.height / 4, 1)); normals.Add(new Vector3(1, 1, 0));
+                vertexs.Add(intersectPs[j]); uvs.Add(new Vector2(0, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 0 + index / 4)); uv3s.Add(new Vector2(1, 0));
+                vertexs.Add(intersectPs[j] + heightOffset); uvs.Add(new Vector2(0, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 1 + index / 4)); uv3s.Add(new Vector2(1, 1));
+                vertexs.Add(intersectPs[j + 1]); uvs.Add(new Vector2(dis / _target.height / 4, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 0 + index / 4)); uv3s.Add(new Vector2(1, 0));
+                vertexs.Add(intersectPs[j + 1] + heightOffset); uvs.Add(new Vector2(dis / _target.height / 4, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 1 + index / 4)); uv3s.Add(new Vector2(1, 1));
 
                 triangles.Add(index);
                 triangles.Add(index + 1);
@@ -162,10 +163,10 @@ public class MeshGrassEditor : Editor {
                 triangles.Add(index + 3);
 
                 index += 4;
-            }     
+            }
         }
         //z 
-        for (float i = zMinMax.x; i < zMinMax.y; i += step)
+        for (float i = zMinMax.x; i < zMinMax.y; i += _target.step)
         {
             intersectPs = getIntersectPoints(false, i, _target.control_points);
             if (intersectPs.Count <= 1)
@@ -173,10 +174,10 @@ public class MeshGrassEditor : Editor {
             for (int j = 0; j < intersectPs.Count - 1; j += 2)
             {
                 float dis = Vector3.Distance(intersectPs[j], intersectPs[j + 1]);
-                vertexs.Add(intersectPs[j]); uvs.Add(new Vector2(0, 0)); normals.Add(new Vector3(0, 0, 1));
-                vertexs.Add(intersectPs[j] + heightOffset); uvs.Add(new Vector2(0, 1)); normals.Add(new Vector3(0, 1, 1));
-                vertexs.Add(intersectPs[j + 1]); uvs.Add(new Vector2(dis / _target.height / 4, 0)); normals.Add(new Vector3(0, 0, 1));
-                vertexs.Add(intersectPs[j + 1] + heightOffset); uvs.Add(new Vector2(dis / _target.height / 4, 1)); normals.Add(new Vector3(0, 1, 1));
+                vertexs.Add(intersectPs[j]); uvs.Add(new Vector2(0, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 0 + index / 4)); uv3s.Add(new Vector2(0, 0));
+                vertexs.Add(intersectPs[j] + heightOffset); uvs.Add(new Vector2(0, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 1 + index / 4)); uv3s.Add(new Vector2(0, 1));
+                vertexs.Add(intersectPs[j + 1]); uvs.Add(new Vector2(dis / _target.height / 4, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 0 + index / 4)); uv3s.Add(new Vector2(0, 0));
+                vertexs.Add(intersectPs[j + 1] + heightOffset); uvs.Add(new Vector2(dis / _target.height / 4, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 1 + index / 4)); uv3s.Add(new Vector2(0, 1));
 
                 triangles.Add(index);
                 triangles.Add(index + 1);
@@ -192,13 +193,17 @@ public class MeshGrassEditor : Editor {
 
         grassMesh.SetVertices(vertexs);
         grassMesh.SetNormals(normals);
-        grassMesh.SetUVs(0, uvs);
+        //grassMesh.SetUVs(0, uvs);
+        grassMesh.SetUVs(0, uv2s);
+        grassMesh.SetUVs(2, uv3s);
         grassMesh.SetTriangles(triangles, 0);
 
         GameObject mobj = new GameObject("lxq");
 
+        
         MeshRenderer mr = mobj.AddComponent<MeshRenderer>();
         mr.sharedMaterial = Resources.Load("meshgrass") as Material;
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         MeshFilter mf = mobj.AddComponent<MeshFilter>();
         mf.sharedMesh = grassMesh;
 
@@ -207,7 +212,8 @@ public class MeshGrassEditor : Editor {
 
     public override void OnInspectorGUI()
     {
-        MeshGrass _target = (MeshGrass)target;
+        AreaGrassObject _target = AreaGrassObject.Instance;
+
         GUILayout.Label("Working mode", EditorStyles.boldLabel);
         int _state = GUILayout.Toolbar(_target.state, _target.stateStrings, GUILayout.Height(30));
 
@@ -217,7 +223,7 @@ public class MeshGrassEditor : Editor {
             if (!BuildMesh())
             {
                 EditorUtility.DisplayDialog("Error...", "Can't build mesh   ", "Proceed", "");
-                return; // nie można zbudowac mesha (np. za mało wierzchołków)
+                return;
             }
         }
         else if ((_target.state == 1) && (_state == 0))
@@ -238,9 +244,11 @@ public class MeshGrassEditor : Editor {
                 
         }
     }
+
     public void OnSceneGUI()
     {
-        MeshGrass _target=(MeshGrass)target;
+        AreaGrassObject _target = AreaGrassObject.Instance;
+
         Event current = Event.current;
         int i;
 
@@ -326,8 +334,8 @@ public class MeshGrassEditor : Editor {
 
             Handles.DrawLine(_target.control_points[i], _target.control_points[(i + 1) % _target.control_points.Count]);
         }
-        Handles.color = Color.gray;
 
-    }	
+        Handles.color = Color.gray;
+    }
 	
 }
