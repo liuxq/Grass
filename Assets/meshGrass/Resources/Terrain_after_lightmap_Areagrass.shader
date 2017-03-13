@@ -2,11 +2,12 @@
 {
 	Properties
 	{
-		_MainTex ("Texture", 2D) = "white" {}
-		_NoiseTex ("Noise tex", 2D) = "black" {}
+		_MainTex ("草纹理", 2D) = "white" {}
+		_NoiseTex ("明暗噪音", 2D) = "black" {}
+		_NoiseScale ("明暗噪音粒度", Range(0, 0.1)) = 0.8
 		_NoiseTexHash ("Noise for slices hash", 2D) = "black" {}
 
-		_StepOffset ("Step Offset", Range(0, 0.5)) = 0.15
+		_StepOffset ("草偏移", Range(0, 0.5)) = 0.15
 
 		_wind_dir ("Constant wind bend (xy to world xz)", Vector) =(0,0,0,0)
 		_wind_amp ("amplitude", Range(0, 0.2)) = 0.1
@@ -57,6 +58,8 @@
 			float _wind_freq;
 
 			float4 _pushPos;
+
+			fixed _NoiseScale;
 			
 			v2f vert (appdata_full v)
 			{
@@ -160,7 +163,7 @@
 
 				clip(col.a - 0.5);
 
-				float bottomScale = tex2D(_NoiseTex, i.wpos_dir.xz * 0.1).b * 0.3 + 0.7;
+				float bottomScale = tex2D(_NoiseTex, i.wpos_dir.xz * _NoiseScale).b * 0.3 + 0.7;
 
 				UNITY_APPLY_FOG(i.fogCoord, col);
 
@@ -168,8 +171,6 @@
 				fixed3 lm = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.lmap));
 				col.rgb *= lm;
 				#endif
-
-				//return fixed4(lm,1);
 
 				return col * bottomScale;
 			}

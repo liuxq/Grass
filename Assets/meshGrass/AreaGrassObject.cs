@@ -20,6 +20,4 @@ public class AreaGrassObject : ScriptableObject {
             return instance;
         }
     }
-
-    
 }

@@ -120,6 +120,7 @@ public class AreaGrassEditor : Editor {
 
         return result;
     }
+
     bool BuildMesh()
     {
         Mesh grassMesh = new Mesh();
@@ -139,6 +140,30 @@ public class AreaGrassEditor : Editor {
         getPointsAB(_target.control_points, out xMinMax, out zMinMax);
 
         List<Vector3> intersectPs = new List<Vector3>();
+
+        //边界
+        for (int i = 0; i < _target.control_points.Count; i++)
+        {
+            Vector3 p1 = _target.control_points[i];
+            Vector3 p2 = _target.control_points[(i + 1) % _target.control_points.Count];
+
+            float dis = Vector3.Distance(p1, p2);
+
+            vertexs.Add(p1); uvs.Add(new Vector2(0, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 0 + index / 4)); uv3s.Add(new Vector2(1, 0));
+            vertexs.Add(p1 + heightOffset); uvs.Add(new Vector2(0, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 1 + index / 4)); uv3s.Add(new Vector2(1, 1));
+            vertexs.Add(p2); uvs.Add(new Vector2(dis / _target.height / 4, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 0 + index / 4)); uv3s.Add(new Vector2(1, 0));
+            vertexs.Add(p2 + heightOffset); uvs.Add(new Vector2(dis / _target.height / 4, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 1 + index / 4)); uv3s.Add(new Vector2(1, 1));
+
+            triangles.Add(index);
+            triangles.Add(index + 1);
+            triangles.Add(index + 2);
+
+            triangles.Add(index + 2);
+            triangles.Add(index + 1);
+            triangles.Add(index + 3);
+
+            index += 4;
+        }
 
         //x 
         for(float i = xMinMax.x; i < xMinMax.y; i += _target.step)
@@ -165,6 +190,7 @@ public class AreaGrassEditor : Editor {
                 index += 4;
             }
         }
+
         //z 
         for (float i = zMinMax.x; i < zMinMax.y; i += _target.step)
         {
@@ -203,6 +229,7 @@ public class AreaGrassEditor : Editor {
         
         MeshRenderer mr = mobj.AddComponent<MeshRenderer>();
         mr.sharedMaterial = Resources.Load("meshgrass") as Material;
+        mr.sharedMaterial.SetFloat("_StepOffset", _target.step + 0.03f);
         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         MeshFilter mf = mobj.AddComponent<MeshFilter>();
         mf.sharedMesh = grassMesh;
