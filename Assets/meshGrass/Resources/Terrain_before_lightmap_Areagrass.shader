@@ -77,13 +77,13 @@
 				v2f o;
 				float4 wpos = mul(UNITY_MATRIX_M, v.vertex);
 				o.wpos_dir.xyz = wpos.xyz;
-				o.wpos_dir.w = v.texcoord2.x;
+				o.wpos_dir.w = v.texcoord.x;
 
 				float2 offset = float2(0,0);
 				
-				if(v.texcoord2.y == 0)
+				if(v.texcoord.y == 0)
 				{
-					if(v.texcoord2.x > 0)//x方向
+					if(v.texcoord.x > 0)//x方向
 					{
 						float2 delta = _WorldSpaceCameraPos.xy - wpos.xy;
 						float tan = abs(delta.y / delta.x);
@@ -102,7 +102,7 @@
 				}
 				
 				o.pos = mul(UNITY_MATRIX_VP, wpos);
-				o.uv = v.texcoord;
+				o.uv = v.texcoord1;
 
 
 				float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
@@ -352,7 +352,7 @@
 				}
 				
 				o.pos = mul(UNITY_MATRIX_VP, wpos);
-				o.uv = v.texcoord;
+				o.uv = v.texcoord1;
 
 				float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
 				fixed3 worldNormal = UnityObjectToWorldNormal(fixed3(0,1,0));

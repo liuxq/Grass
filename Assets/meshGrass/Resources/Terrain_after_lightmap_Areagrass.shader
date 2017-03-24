@@ -7,14 +7,12 @@
 		_NoiseScale ("明暗噪音粒度", Range(0, 0.1)) = 0.8
 		_NoiseTexHash ("Noise for slices hash", 2D) = "black" {}
 
-		_StepOffset ("草偏移", Range(0, 0.5)) = 0.15
+		_StepOffset ("草偏移", Range(0, 1)) = 0.15
 
-		_wind_dir ("Constant wind bend (xy to world xz)", Vector) =(0,0,0,0)
-		_wind_amp ("amplitude", Range(0, 0.2)) = 0.1
-		_wind_freq ("noise frequency", Float) = 0
-		_wind_speed ("noise offset anim speed", Float) = 0.1
+		_pushPos("位置", Vector) = (0,0,0,0)
 
-		_pushPos("pushPos and width", Vector) = (0,0,0,0)
+		_HeightOffset ("高度", Range(0, 1)) = 0
+
 	}
 
 	SubShader
@@ -51,47 +49,39 @@
 			sampler2D _NoiseTexHash;
 
 			fixed _StepOffset;
-
-			float _wind_amp;
-			float2 _wind_dir;
-			float _wind_speed;
-			float _wind_freq;
-
-			float4 _pushPos;
-
 			fixed _NoiseScale;
+			fixed3 _pushPos;
+			fixed _HeightOffset;
 			
 			v2f vert (appdata_full v)
 			{
 				v2f o;
 				float4 wpos = mul(UNITY_MATRIX_M, v.vertex);
 				o.wpos_dir.xyz = wpos.xyz;
-				o.wpos_dir.w = v.texcoord2.x;
+				o.wpos_dir.w = v.texcoord.x;
 
-				float2 offset = float2(0,0);
+				/*float2 offset = float2(0,0);
 				
-				if(v.texcoord2.y == 0)
+				if(v.texcoord.y == 0)
 				{
 					if(o.wpos_dir.w > 0)//x方向
 					{
-						float2 delta = _WorldSpaceCameraPos.xy - wpos.xy;
-						float tan = abs(delta.y / delta.x);
-						offset.x = _StepOffset;
-						offset.x *= (delta.x > 0 ? -1 : 1);
+						offset.x = _StepOffset * (_WorldSpaceCameraPos.x - wpos.x > 0 ? -1 : 1);
 					}
 					else//z方向
 					{
-						float2 delta = _WorldSpaceCameraPos.yz - wpos.yz;
-						float tan = abs(delta.x / delta.y);
-						offset.y = _StepOffset;
-						offset.y *= (delta.y > 0 ? -1 : 1);
+						offset.y = _StepOffset * (_WorldSpaceCameraPos.z - wpos.z > 0 ? -1 : 1);
 					}
 					wpos.x -= offset.x;
 					wpos.z -= offset.y;
 				}
+				else
+				{
+					wpos.y -= _HeightOffset;
+				}*/
 				
 				o.pos = mul(UNITY_MATRIX_VP, wpos);
-				o.uv = v.texcoord;
+				o.uv = v.texcoord1;
 				UNITY_TRANSFER_FOG(o,o.pos);
 
 				#ifndef LIGHTMAP_OFF
@@ -103,76 +93,29 @@
 			
 			fixed4 frag (v2f i) : SV_Target
 			{
-				float _wind_dir_magnitude=length(_wind_dir);
-				float2 wind_dir=(_wind_dir_magnitude==0) ? float2(1,1) : -_wind_dir/_wind_dir_magnitude;
-				float2 wind_coords=i.wpos_dir.xz*_wind_freq+_Time.xx*_wind_speed*wind_dir;
-				float3 wtmp=tex2D(_NoiseTex, wind_coords.xy);
-				float2 wind_offset_main=float2(wtmp.x, wtmp.y)-0.5;
-				wind_offset_main-=_wind_dir;
-				wind_offset_main*=_wind_amp;
-
-				// 推动草
-				float3 dis = i.wpos_dir.xyz - _pushPos.xyz;
-				float3 absdis = abs(dis);
-				float disScale = max(max(absdis.x,absdis.y),absdis.z);
-				bool pushFlag = false;
-				if(disScale < _pushPos.w)
-				{
-					dis = dis/(dis.x * dis.x + dis.z * dis.z);
-					wind_offset_main -= dis.xz * 1;
-					pushFlag = true;
-				}
-
-				wind_offset_main *= frac(i.uv.y);
-
-
-				bool xflag = (i.wpos_dir.w > 0);
-				
-				float2 htmp=tex2D(_NoiseTexHash, float2((xflag ? i.wpos_dir.x : i.wpos_dir.z) * 0.03,0)).rg;
+				fixed2 htmp=tex2D(_NoiseTexHash, fixed2((i.wpos_dir.x) * 0.03,0)).rg;
 
 				float x = floor(htmp.x * 3.999);
 
 				fixed4 col;
 				float2 realUv;
-				if(xflag)
-				{
-					realUv = float2(i.uv.x + htmp.y, i.uv.y * .25 + x/4);
-					realUv.x += wind_offset_main.y;
-					if(pushFlag)
-					{
-						realUv.y += abs(wind_offset_main.y);
-						if(realUv.y > x/4 + 0.25 || realUv.y < x/4)
-							discard;
-					}
-					
-					col = tex2D(_MainTex, realUv);
-				}
-				else
-				{
-					realUv = float2(i.uv.x + htmp.y, i.uv.y * .25 + x/4);
-					realUv.x += wind_offset_main.x;
-					if(pushFlag)
-					{
-						realUv.y += abs(wind_offset_main.x);
-						if(realUv.y > x/4 + 0.25 || realUv.y < x/4)
-							discard;
-					}
 
-					col = tex2D(_MainTex, realUv);
-				}
+				realUv = fixed2(i.uv.x + htmp.y, i.uv.y * .25 + x * .25);
+				col = tex2D(_MainTex, realUv);
 
-				clip(col.a - 0.5);
+				if(col.a  < 0.5)
+					discard;
 
-				float bottomScale = tex2D(_NoiseTex, i.wpos_dir.xz * _NoiseScale).b * 0.3 + 0.7;
+				//float bottomScale = tex2D(_NoiseTex, i.wpos_dir.xz * _NoiseScale).b * 0.3 + 0.7;
 
 				UNITY_APPLY_FOG(i.fogCoord, col);
 
 				#ifndef LIGHTMAP_OFF
-				fixed3 lm = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.lmap));
-				col.rgb *= lm;
+				//fixed3 lm = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.lmap));
+				//col.rgb *= lm;
 				#endif
 
-				return col * bottomScale;
+				return col;
 			}
 			ENDCG
 		}
