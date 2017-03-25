@@ -348,6 +348,73 @@ public class AreaGrassEditor : Editor {
             return true;
         }
 
+        bool BuildRealMesh()
+        {
+            GameObject grass = Resources.Load("Q_shiyancao") as GameObject;
+            GameObject grassParent = GameObject.Find("Grass") as GameObject;
+            AreaGrassObject _target = AreaGrassObject.Instance;
+            Vector3 heightOffset = new Vector3(0, _target.height, 0);
+
+            Vector2 xMinMax, zMinMax;
+            Vector3[] keyPoints = new Vector3[4];
+            getPointsAB(_target.control_points, out xMinMax, out zMinMax, keyPoints);
+
+            List<Vector3> intersectPs = new List<Vector3>();
+
+            //x 
+            for (float i = xMinMax.x; i < xMinMax.y; i += _target.step)
+            {
+                intersectPs = getIntersectPoints(true, i, _target.control_points);
+                if (intersectPs.Count <= 1)
+                    continue;
+                for (int j = 0; j < intersectPs.Count - 1; j += 2)
+                {
+                    float dis = Vector3.Distance(intersectPs[j], intersectPs[j + 1]);
+                    if (dis == 0)
+                        continue;
+
+                    Vector3 dir = intersectPs[j + 1] - intersectPs[j];
+                    dir /= dis;
+
+                    for (float k = 0; k < dis; k += _target.step)
+                    {
+                        Vector3 pos = intersectPs[j] + dir * k;
+                        GameObject go = Instantiate(grass, pos, Quaternion.identity) as GameObject;
+                        go.transform.parent = grassParent.transform;
+                    }
+                }
+            }
+            ////z 
+            //for (float i = zMinMax.x; i < zMinMax.y; i += _target.step)
+            //{
+            //    intersectPs = getIntersectPoints(false, i, _target.control_points);
+            //    if (intersectPs.Count <= 1)
+            //        continue;
+            //    for (int j = 0; j < intersectPs.Count - 1; j += 2)
+            //    {
+            //        float dis = Vector3.Distance(intersectPs[j], intersectPs[j + 1]);
+            //        if (dis == 0)
+            //            continue;
+            //        vertexs.Add(intersectPs[j]); uvs.Add(new Vector2(0, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 0 + index / 4)); uv3s.Add(new Vector2(0, 0));
+            //        vertexs.Add(intersectPs[j] + heightOffset); uvs.Add(new Vector2(0, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(0, 1 + index / 4)); uv3s.Add(new Vector2(0, 1));
+            //        vertexs.Add(intersectPs[j + 1]); uvs.Add(new Vector2(dis / _target.height / 4, 0)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 0 + index / 4)); uv3s.Add(new Vector2(0, 0));
+            //        vertexs.Add(intersectPs[j + 1] + heightOffset); uvs.Add(new Vector2(dis / _target.height / 4, 1)); normals.Add(new Vector3(0, 1, 0)); uv2s.Add(new Vector2(dis / _target.height / 4, 1 + index / 4)); uv3s.Add(new Vector2(0, 1));
+
+            //        triangles.Add(index);
+            //        triangles.Add(index + 1);
+            //        triangles.Add(index + 2);
+
+            //        triangles.Add(index + 2);
+            //        triangles.Add(index + 1);
+            //        triangles.Add(index + 3);
+
+            //        index += 4;
+            //    }
+            //}
+
+            return true;
+        }
+
     public override void OnInspectorGUI()
     {
         AreaGrassObject _target = AreaGrassObject.Instance;

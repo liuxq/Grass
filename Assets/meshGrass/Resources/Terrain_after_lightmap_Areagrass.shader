@@ -17,8 +17,8 @@
 
 	SubShader
 	{
-		Tags { "RenderType"="Opaque" }
-		LOD 100
+		Tags { "Queue"="Opaque" }
+		//LOD 100
 
 		Pass
 		{
@@ -60,7 +60,7 @@
 				o.wpos_dir.xyz = wpos.xyz;
 				o.wpos_dir.w = v.texcoord.x;
 
-				/*float2 offset = float2(0,0);
+				float2 offset = float2(0,0);
 				
 				if(v.texcoord.y == 0)
 				{
@@ -78,7 +78,7 @@
 				else
 				{
 					wpos.y -= _HeightOffset;
-				}*/
+				}
 				
 				o.pos = mul(UNITY_MATRIX_VP, wpos);
 				o.uv = v.texcoord1;
@@ -93,20 +93,21 @@
 			
 			fixed4 frag (v2f i) : SV_Target
 			{
-				fixed2 htmp=tex2D(_NoiseTexHash, fixed2((i.wpos_dir.x) * 0.03,0)).rg;
-
-				float x = floor(htmp.x * 3.999);
+				fixed2 htmp=tex2D(_NoiseTexHash, fixed2(float2(((i.wpos_dir.w > 0) ? i.wpos_dir.x : i.wpos_dir.z) * 0.03,0))).rg;
 
 				fixed4 col;
 				float2 realUv;
 
-				realUv = fixed2(i.uv.x + htmp.y, i.uv.y * .25 + x * .25);
+				realUv = fixed2(i.uv.x + htmp.y, i.uv.y * .25 + floor(htmp.x * 3.999) * .25);
+				//realUv = fixed2(i.uv.x, i.uv.y * .25 );
 				col = tex2D(_MainTex, realUv);
 
-				if(col.a  < 0.5)
+				if(col.a < 0.5)
+				{
 					discard;
+				}
 
-				//float bottomScale = tex2D(_NoiseTex, i.wpos_dir.xz * _NoiseScale).b * 0.3 + 0.7;
+				fixed bottomScale = tex2D(_NoiseTex, i.wpos_dir.xz * _NoiseScale).b * 0.3 + 0.7;
 
 				UNITY_APPLY_FOG(i.fogCoord, col);
 
@@ -115,7 +116,7 @@
 				//col.rgb *= lm;
 				#endif
 
-				return col;
+				return col * bottomScale;
 			}
 			ENDCG
 		}
